@@ -1,0 +1,678 @@
+﻿<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>可可農夫：探索小教室</title>
+    <style>
+      :root {
+        --green-50: #f0fdf4;
+        --green-100: #dcfce7;
+        --green-200: #bbf7d0;
+        --green-400: #4ade80;
+        --green-500: #22c55e;
+        --green-600: #16a34a;
+        --green-700: #15803d;
+        --green-800: #166534;
+        --green-900: #14532d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      }
+
+      body {
+        background-color: #e6f4ea;
+        background-image: radial-gradient(#a7f3d0 2px, transparent 2px);
+        background-size: 40px 40px;
+        color: var(--green-900);
+      }
+
+      .app {
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .topbar {
+        height: 64px;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid var(--green-200);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        font-weight: 700;
+        color: var(--green-800);
+        font-size: 15px;
+      }
+
+      .controls {
+        display: flex;
+        gap: 8px;
+      }
+
+      .icon-btn {
+        width: 46px;
+        height: 46px;
+        border: 2px solid var(--green-200);
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 19px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s ease;
+      }
+
+      .icon-btn:active {
+        transform: scale(0.95);
+      }
+
+      .icon-btn.audio-on {
+        background: var(--green-500);
+        color: #fff;
+        border-color: var(--green-400);
+      }
+
+      .icon-btn.audio-off,
+      .icon-btn.reset {
+        background: #fff;
+        color: var(--green-600);
+      }
+
+      .main {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 16px 0;
+        overflow: hidden;
+      }
+
+      .bubble-wrap {
+        width: 100%;
+        max-width: 680px;
+        margin-bottom: 8px;
+      }
+
+      .bubble {
+        background: #fff;
+        border: 4px solid var(--green-400);
+        border-radius: 2rem;
+        padding: 20px;
+        min-height: 120px;
+        position: relative;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .bubble-text {
+        margin: 0;
+        text-align: center;
+        font-size: clamp(18px, 2.3vw, 31px);
+        line-height: 1.5;
+        font-weight: 700;
+      }
+
+      .bubble-tail {
+        position: absolute;
+        left: 50%;
+        bottom: -13px;
+        transform: translateX(-50%) rotate(45deg);
+        width: 24px;
+        height: 24px;
+        background: #fff;
+        border-right: 4px solid var(--green-400);
+        border-bottom: 4px solid var(--green-400);
+      }
+
+      .voice-bars {
+        display: none;
+        justify-content: center;
+        align-items: flex-end;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .voice-bars.show {
+        display: flex;
+      }
+
+      .voice-bars div {
+        width: 6px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--green-400);
+        animation: bounce 0.8s infinite ease-in-out;
+      }
+
+      .voice-bars div:nth-child(2) {
+        animation-delay: 0.1s;
+      }
+
+      .voice-bars div:nth-child(3) {
+        animation-delay: 0.2s;
+      }
+
+      .voice-bars div:nth-child(4) {
+        animation-delay: 0.3s;
+      }
+
+      .farmer-area {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 8px;
+      }
+
+      .farmer-wrap {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .farmer-wrap.float {
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .farmer-wrap.sway {
+        animation: sway 2s ease-in-out infinite;
+        transform: scale(1.05);
+      }
+
+      .farmer-svg {
+        width: auto;
+        max-height: 100%;
+        height: min(380px, 50vh);
+        filter: drop-shadow(0 16px 18px rgba(0, 0, 0, 0.2));
+      }
+
+      .bottom {
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.95);
+        border-top: 4px solid var(--green-100);
+        padding: 12px;
+        backdrop-filter: blur(8px);
+      }
+
+      .bottom-inner {
+        max-width: 920px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .quick-list {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+
+      .quick-list::-webkit-scrollbar {
+        display: none;
+      }
+
+      .quick-btn {
+        white-space: nowrap;
+        padding: 8px 13px;
+        border-radius: 999px;
+        border: 1px solid var(--green-200);
+        background: var(--green-50);
+        color: var(--green-700);
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      .quick-btn:hover {
+        background: #eafbec;
+      }
+
+      .quick-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .input-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px;
+        border-radius: 999px;
+        border: 2px solid var(--green-200);
+        background: var(--green-50);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .input-row:focus-within {
+        border-color: var(--green-400);
+        background: #fff;
+      }
+
+      .mic {
+        padding-left: 10px;
+        color: var(--green-500);
+        font-size: 22px;
+      }
+
+      #questionInput {
+        flex: 1;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--green-900);
+        font-weight: 700;
+        font-size: 19px;
+        min-width: 0;
+      }
+
+      #questionInput::placeholder {
+        color: #74b889;
+      }
+
+      .send-btn {
+        border: 0;
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        background: var(--green-500);
+        color: #fff;
+        font-size: 19px;
+        cursor: pointer;
+      }
+
+      .send-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.45);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      @keyframes sway {
+        0%,
+        100% {
+          transform: rotate(0deg) scale(1.05);
+        }
+        50% {
+          transform: rotate(5deg) scale(1.05);
+        }
+      }
+
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 700px) {
+        .brand {
+          font-size: 13px;
+          padding: 6px 10px;
+        }
+
+        .icon-btn {
+          width: 41px;
+          height: 41px;
+          font-size: 16px;
+        }
+
+        #questionInput {
+          font-size: 17px;
+        }
+
+        .mic {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand"><span aria-hidden="true">🌱</span><span>可可農夫：探索小教室</span></div>
+        <div class="controls">
+          <button id="audioBtn" class="icon-btn audio-on" type="button" aria-label="切換語音">🔊</button>
+          <button id="resetBtn" class="icon-btn reset" type="button" aria-label="重設">↻</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <section class="bubble-wrap">
+          <div class="bubble">
+            <p id="displayedText" class="bubble-text"></p>
+            <div id="voiceBars" class="voice-bars">
+              <div></div><div></div><div></div><div></div>
+            </div>
+            <div class="bubble-tail"></div>
+          </div>
+        </section>
+
+        <section class="farmer-area">
+          <div id="farmerWrap" class="farmer-wrap float">
+            <svg viewBox="0 0 200 200" class="farmer-svg">
+              <path d="M40 70 Q100 20 160 70 L180 85 Q100 100 20 85 Z" fill="#0ea5e9" stroke="#0284c7" stroke-width="3" />
+              <path d="M20 85 Q100 100 180 85 Q100 105 20 85 Z" fill="#ef4444" />
+              <polygon points="90,65 110,65 100,80" fill="#fde047" stroke="#ca8a04" stroke-width="2" />
+              <rect x="45" y="100" width="15" height="30" rx="5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="2" />
+              <rect x="140" y="100" width="15" height="30" rx="5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="2" />
+              <rect x="55" y="85" width="90" height="75" rx="20" fill="#d4a373" stroke="#bc6c25" stroke-width="3" />
+              <circle cx="75" cy="120" r="12" fill="#ffffff" stroke="#4a3018" stroke-width="2" />
+              <circle cx="75" cy="120" r="6" fill="#4a3018" />
+              <circle cx="125" cy="120" r="12" fill="#ffffff" stroke="#4a3018" stroke-width="2" />
+              <circle cx="125" cy="120" r="6" fill="#4a3018" />
+              <path d="M98 135 L102 135 L100 130 Z" fill="#bc6c25" />
+              <path id="mouth" d="M90 145 Q100 152 110 145" fill="none" stroke="#4a3018" stroke-width="3" stroke-linecap="round" />
+              <path d="M70 160 L130 160 L135 195 L65 195 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="2" />
+              <path d="M75 175 L125 175 L125 195 L75 195 Z" fill="#22c55e" stroke="#166534" stroke-width="2" />
+              <rect x="90" y="180" width="20" height="12" rx="2" fill="#16a34a" />
+              <circle cx="100" cy="186" r="3" fill="#ef4444" />
+            </svg>
+          </div>
+        </section>
+      </main>
+
+      <footer class="bottom">
+        <div class="bottom-inner">
+          <div id="quickList" class="quick-list"></div>
+          <div class="input-row">
+            <div class="mic" aria-hidden="true">🎤</div>
+            <input id="questionInput" type="text" placeholder="我有新發現..." />
+            <button id="sendBtn" class="send-btn" type="button" aria-label="送出">➤</button>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      const initialText = "小農夫你好呀！🚜 我是可可農夫。你觀察完那兩盤草莓了嗎？它們的顏色、形狀有什麼不同？儘管問我喔！🍓";
+
+      const quickQuestions = [
+        "發霉後能變回新鮮的嗎？",
+        "這屬於哪種變化？",
+        "草莓發霉長出什麼？",
+        "新鮮和發霉有什麼分別？"
+      ];
+
+      let displayedText = initialText;
+      let inputText = "";
+      let isLoading = false;
+      let isSpeaking = false;
+      let isAudioEnabled = true;
+      let typewriterTimer = null;
+
+      const displayedTextEl = document.getElementById("displayedText");
+      const questionInputEl = document.getElementById("questionInput");
+      const sendBtnEl = document.getElementById("sendBtn");
+      const quickListEl = document.getElementById("quickList");
+      const voiceBarsEl = document.getElementById("voiceBars");
+      const audioBtnEl = document.getElementById("audioBtn");
+      const resetBtnEl = document.getElementById("resetBtn");
+      const farmerWrapEl = document.getElementById("farmerWrap");
+      const mouthEl = document.getElementById("mouth");
+
+      function generateAnswer(question) {
+        const q = question.toLowerCase();
+
+        if (
+          q.includes("分別") || q.includes("顏色") || q.includes("形狀") ||
+          q.includes("質感") || q.includes("特徵") || q.includes("不同")
+        ) {
+          return "來，我告訴你我的觀察：新鮮草莓是『鮮紅色』的，形狀『飽滿』，摸起來『硬實』；但發霉的草莓顏色會變『暗沈』，形狀變得『軟爛』，表面還長了毛茸茸的東西喔！🍓";
+        }
+
+        if (q.includes("白色") || q.includes("白毛") || q.includes("長出") || q.includes("東西")) {
+          return "你觀察得太準確了！那些白白灰灰、毛茸茸的東西，科學上我們稱它為『霉菌』。它是因為草莓變質而長出來的新物質喔！🔍";
+        }
+
+        if (q.includes("變回") || q.includes("回復") || q.includes("恢復") || q.includes("原本")) {
+          return "這是一個關鍵問題！你想想看，發霉後的草莓已經長了霉菌、變軟爛了。你覺得它還有可能變回原本那顆鮮紅硬實的草莓嗎？試著在工作紙第 4 題寫下你的判斷！🛑";
+        }
+
+        if (q.includes("物理") || q.includes("化學") || q.includes("變化")) {
+          return "很有鑽研精神喔！既然草莓長出了『霉菌』這種新東西，而且『不能變回原狀』，這在科學定義中屬於物理變化還是化學變化？去看看工作紙上的提示吧！🎓";
+        }
+
+        if (q.includes("吃") || q.includes("食") || q.includes("洗")) {
+          return "這很危險喔！既然已經長出了『霉菌』，這代表草莓已經產生了有害的新物質。你覺得洗一洗真的能把這些已經產生的變化變不見嗎？為了安全，絕對不能吃喔！🚫";
+        }
+
+        if (q.includes("你好") || q.includes("哈囉")) {
+          return "你好呀！我是可可農夫🚜！準備好跟我一起透過觀察來解開大自然的奧秘了嗎？點選下方的按鈕，或者直接把你的發現告訴我！";
+        }
+
+        return "這個問題問得真好！🚜 我也想聽聽你的看法。你可以試著觀察看看：發霉後的草莓長出了什麼『新東西』？它還能變回原本的樣子嗎？";
+      }
+
+      function setDisplayedText(text) {
+        displayedText = text;
+        displayedTextEl.textContent = text;
+      }
+
+      function updateSpeakingUI() {
+        if (isSpeaking) {
+          voiceBarsEl.classList.add("show");
+          farmerWrapEl.classList.remove("float");
+          farmerWrapEl.classList.add("sway");
+          mouthEl.setAttribute("d", "M85 145 Q100 160 115 145 Z");
+          mouthEl.setAttribute("fill", "#ef4444");
+          mouthEl.setAttribute("stroke-width", "2");
+        } else {
+          voiceBarsEl.classList.remove("show");
+          farmerWrapEl.classList.remove("sway");
+          farmerWrapEl.classList.add("float");
+          mouthEl.setAttribute("d", "M90 145 Q100 152 110 145");
+          mouthEl.setAttribute("fill", "none");
+          mouthEl.setAttribute("stroke-width", "3");
+        }
+      }
+
+      function updateButtons() {
+        const canSend = inputText.trim().length > 0 && !isLoading;
+        sendBtnEl.disabled = !canSend;
+        sendBtnEl.innerHTML = isLoading ? '<span class="spinner"></span>' : "➤";
+
+        audioBtnEl.classList.toggle("audio-on", isAudioEnabled);
+        audioBtnEl.classList.toggle("audio-off", !isAudioEnabled);
+        audioBtnEl.textContent = isAudioEnabled ? "🔊" : "🔇";
+      }
+
+      function setLoading(v) {
+        isLoading = v;
+        questionInputEl.disabled = v;
+        quickListEl.querySelectorAll("button").forEach((btn) => {
+          btn.disabled = v;
+        });
+        updateButtons();
+      }
+
+      function startTypewriter(fullText) {
+        let currentIndex = 0;
+        setDisplayedText("");
+        const interval = 80;
+
+        if (typewriterTimer) clearInterval(typewriterTimer);
+
+        typewriterTimer = setInterval(() => {
+          if (currentIndex < fullText.length) {
+            setDisplayedText(fullText.slice(0, currentIndex + 1));
+            currentIndex += 1;
+          } else {
+            clearInterval(typewriterTimer);
+            typewriterTimer = null;
+          }
+        }, interval);
+      }
+
+      function speakAndDisplay(text) {
+        if (!isAudioEnabled || !("speechSynthesis" in window)) {
+          startTypewriter(text);
+          return;
+        }
+
+        window.speechSynthesis.cancel();
+        const textToSpeak = text.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "");
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = "zh-HK";
+        utterance.rate = 1;
+        utterance.pitch = 1.2;
+
+        utterance.onstart = () => {
+          isSpeaking = true;
+          updateSpeakingUI();
+          startTypewriter(text);
+        };
+
+        utterance.onend = () => {
+          isSpeaking = false;
+          updateSpeakingUI();
+          setDisplayedText(text);
+          if (typewriterTimer) {
+            clearInterval(typewriterTimer);
+            typewriterTimer = null;
+          }
+        };
+
+        utterance.onerror = () => {
+          isSpeaking = false;
+          updateSpeakingUI();
+          startTypewriter(text);
+        };
+
+        window.speechSynthesis.speak(utterance);
+      }
+
+      function processQuestion(questionText) {
+        inputText = "";
+        questionInputEl.value = "";
+        setLoading(true);
+        setDisplayedText("嗯... 可可農夫正在思考如何回答你... 🌱");
+
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+
+        window.setTimeout(() => {
+          const answer = generateAnswer(questionText);
+          setLoading(false);
+          speakAndDisplay(answer);
+        }, 1200);
+      }
+
+      function handleAsk() {
+        const trimmed = questionInputEl.value.trim();
+        if (!trimmed || isLoading) return;
+        processQuestion(trimmed);
+      }
+
+      function renderQuickButtons() {
+        quickListEl.innerHTML = "";
+        quickQuestions.forEach((question) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "quick-btn";
+          btn.textContent = question;
+          btn.addEventListener("click", () => {
+            if (!isLoading) processQuestion(question);
+          });
+          quickListEl.appendChild(btn);
+        });
+      }
+
+      questionInputEl.addEventListener("input", (e) => {
+        inputText = e.target.value;
+        updateButtons();
+      });
+
+      questionInputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") handleAsk();
+      });
+
+      sendBtnEl.addEventListener("click", handleAsk);
+
+      audioBtnEl.addEventListener("click", () => {
+        isAudioEnabled = !isAudioEnabled;
+        if (!isAudioEnabled && "speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          isSpeaking = false;
+          updateSpeakingUI();
+        }
+        updateButtons();
+      });
+
+      resetBtnEl.addEventListener("click", () => {
+        window.location.reload();
+      });
+
+      window.addEventListener("beforeunload", () => {
+        if (typewriterTimer) clearInterval(typewriterTimer);
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+      });
+
+      renderQuickButtons();
+      setDisplayedText(initialText);
+      updateSpeakingUI();
+      updateButtons();
+    </script>
+  </body>
+</html>
