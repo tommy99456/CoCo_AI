@@ -1,274 +1,263 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Sprout, Loader2, RotateCcw, Volume2, VolumeX, Mic, Send, Leaf } from 'lucide-react';
-
-const App = () => {
-  const [displayedText, setDisplayedText] = useState('小農夫你好呀！🚜 我是可可農夫。你觀察完那兩盤草莓了嗎？它們的顏色、形狀有什麼不同？儘管問我喔！🍓');
-  const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  
-  const typewriterTimer = useRef(null);
-
-  // 快速問題清單
-  const quickQuestions = [
-    "發霉後能變回新鮮的嗎？",
-    "這屬於哪種變化？",
-    "草莓發霉長出什麼？",
-    "新鮮和發霉有什麼分別？"
-  ];
-
-  // 離線知識庫 (直接回答事實 + 引導思考邏輯)
-  const generateAnswer = (question) => {
-    const q = question.toLowerCase();
-    
-    // --- 1. 直接回答的事實部分 ---
-
-    // 關於顏色、形狀、質感的具體答案
-    if (q.includes("分別") || q.includes("顏色") || q.includes("形狀") || q.includes("質感") || q.includes("特徵") || q.includes("不同")) {
-      return "來，我告訴你我的觀察：新鮮草莓是『鮮紅色』的，形狀『飽滿』，摸起來『硬實』；但發霉的草莓顏色會變『暗沈』，形狀變得『軟爛』，表面還長了毛茸茸的東西喔！🍓";
-    }
-
-    // 關於白色東西的具體答案
-    if (q.includes("白色") || q.includes("白毛") || q.includes("長出") || q.includes("東西")) {
-      return "你觀察得太準確了！那些白白灰灰、毛茸茸的東西，科學上我們稱它為『霉菌』。它是因為草莓變質而長出來的新物質喔！🔍";
-    }
-
-    // --- 2. 引導思考部分 (不給直接答案) ---
-
-    // 引導思考：不可逆性 (對應工作紙第 4 題)
-    if (q.includes("變回") || q.includes("回復") || q.includes("恢復") || q.includes("原本")) {
-      return "這是一個關鍵問題！你想想看，發霉後的草莓已經長了霉菌、變軟爛了。你覺得它還有可能變回原本那顆鮮紅硬實的草莓嗎？試著在工作紙第 4 題寫下你的判斷！🛑";
-    }
-
-    // 引導思考：化學變化 (對應工作紙結論)
-    if (q.includes("物理") || q.includes("化學") || q.includes("變化")) {
-      return "很有鑽研精神喔！既然草莓長出了『霉菌』這種新東西，而且『不能變回原狀』，這在科學定義中屬於物理變化還是化學變化？去看看工作紙上的提示吧！🎓";
-    }
-
-    if (q.includes("吃") || q.includes("食") || q.includes("洗")) {
-      return "這很危險喔！既然已經長出了『霉菌』，這代表草莓已經產生了有害的新物質。你覺得洗一洗真的能把這些已經產生的變化變不見嗎？為了安全，絕對不能吃喔！🚫";
-    }
-
-    if (q.includes("你好") || q.includes("哈囉")) {
-      return "你好呀！我是可可農夫🚜！準備好跟我一起透過觀察來解開大自然的奧秘了嗎？點選下方的按鈕，或者直接把你的發現告訴我！";
-    }
-    
-    return "這個問題問得真好！🚜 我也想聽聽你的看法。你可以試著觀察看看：發霉後的草莓長出了什麼『新東西』？它還能變回原本的樣子嗎？";
-  };
-
-  const startTypewriter = (fullText) => {
-    let currentIndex = 0;
-    setDisplayedText(""); 
-    const interval = 80; 
-
-    if (typewriterTimer.current) clearInterval(typewriterTimer.current);
-
-    typewriterTimer.current = setInterval(() => {
-      if (currentIndex < fullText.length) {
-        setDisplayedText(fullText.substring(0, currentIndex + 1));
-        currentIndex++;
-      } else {
-        clearInterval(typewriterTimer.current);
-      }
-    }, interval);
-  };
-
-  const speakAndDisplay = (text) => {
-    if (!isAudioEnabled || !('speechSynthesis' in window)) {
-      startTypewriter(text);
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-
-    // 過濾 Emoji 避免語音讀出
-    const textToSpeak = text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '');
-
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'zh-HK'; 
-    utterance.rate = 1.0; 
-    utterance.pitch = 1.2; 
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      startTypewriter(text);
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setDisplayedText(text);
-      if (typewriterTimer.current) clearInterval(typewriterTimer.current);
-    };
-
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      startTypewriter(text);
-    };
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const processQuestion = (questionText) => {
-    setInputText('');
-    setIsLoading(true);
-    setDisplayedText("嗯... 可可農夫正在思考如何回答你... 🌱"); 
-    window.speechSynthesis.cancel(); 
-
-    setTimeout(() => {
-      const answer = generateAnswer(questionText);
-      setIsLoading(false);
-      speakAndDisplay(answer);
-    }, 1200);
-  };
-
-  const handleAsk = () => {
-    if (!inputText.trim() || isLoading) return;
-    processQuestion(inputText.trim());
-  };
-
-  const handleQuickQuestion = (question) => {
-    if (isLoading) return;
-    processQuestion(question);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (typewriterTimer.current) clearInterval(typewriterTimer.current);
-      window.speechSynthesis.cancel();
-    };
-  }, []);
-
-  return (
-    <div className="flex flex-col h-screen overflow-hidden font-sans relative"
-         style={{ 
-           backgroundColor: '#E6F4EA',
-           backgroundImage: 'radial-gradient(#A7F3D0 2px, transparent 2px)', 
-           backgroundSize: '40px 40px' 
-         }}>
-      
-      <style>
-        {`
-          @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
-          .animate-float { animation: float 3s ease-in-out infinite; }
-          @keyframes sway { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(5deg); } }
-          .animate-sway { animation: sway 2s ease-in-out infinite; }
-        `}
-      </style>
-
-      {/* 頂部導航 */}
-      <div className="h-16 w-full p-4 flex justify-between items-center z-20 shrink-0">
-        <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border-2 border-green-200">
-          <Sprout className="text-green-600 w-6 h-6 animate-pulse" />
-          <span className="font-bold text-green-800 text-sm sm:text-base">可可農夫：探索小教室</span>
-        </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => {
-              setIsAudioEnabled(!isAudioEnabled);
-              if (isAudioEnabled) window.speechSynthesis.cancel();
-            }}
-            className={`p-3 rounded-full shadow-sm transition-all active:scale-95 border-2 ${isAudioEnabled ? 'bg-green-500 text-white border-green-400' : 'bg-green-100 text-green-500 border-green-200'}`}
-          >
-            {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-          </button>
-          <button onClick={() => window.location.reload()} className="p-3 bg-white text-green-600 rounded-full shadow-sm border-2 border-green-200 active:rotate-180 duration-700">
-            <RotateCcw size={20} />
-          </button>
-        </div>
-      </div>
-
-      {/* 主內容區 */}
-      <div className="flex-1 w-full flex flex-col items-center justify-between px-4 pt-2 overflow-hidden min-h-0">
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>可可農夫自然科學小教室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
         
-        {/* 對話氣泡 */}
-        <div className="w-full max-w-lg shrink-0 z-20 mb-2">
-          <div className="bg-white border-[4px] border-green-400 p-5 rounded-[2rem] shadow-xl relative transform transition-all min-h-[110px] flex flex-col justify-center">
-            <p className="text-base sm:text-xl text-green-900 leading-relaxed font-bold text-center">
-              {displayedText}
-            </p>
-            {isSpeaking && (
-              <div className="flex justify-center items-end gap-1.5 mt-2">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="w-1.5 bg-green-400 rounded-full animate-bounce" style={{ height: '8px', animationDelay: `${i*0.1}s` }}></div>
-                ))}
-              </div>
-            )}
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border-r-[4px] border-b-[4px] border-green-400 rotate-45 z-0"></div>
-          </div>
-        </div>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #E6F4EA;
+            background-image: radial-gradient(#A7F3D0 2px, transparent 2px);
+            background-size: 40px 40px;
+            overflow: hidden;
+            height: 100vh;
+        }
 
-        {/* 可可農夫 SVG */}
-        <div className="flex-1 w-full flex items-center justify-center relative z-10 min-h-0 pb-2">
-          <div className={`transition-all duration-500 ${isSpeaking ? 'scale-105 animate-sway' : 'animate-float'} h-full w-full flex items-center justify-center`}>
-            <svg viewBox="0 0 200 200" className="drop-shadow-2xl h-[380px] max-h-full w-auto">
-              <path d="M40 70 Q100 20 160 70 L180 85 Q100 100 20 85 Z" fill="#0ea5e9" stroke="#0284c7" strokeWidth="3" />
-              <path d="M20 85 Q100 100 180 85 Q100 105 20 85 Z" fill="#ef4444" />
-              <polygon points="90,65 110,65 100,80" fill="#fde047" stroke="#ca8a04" strokeWidth="2" />
-              <rect x="45" y="100" width="15" height="30" rx="5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" />
-              <rect x="140" y="100" width="15" height="30" rx="5" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" />
-              <rect x="55" y="85" width="90" height="75" rx="20" fill="#d4a373" stroke="#bc6c25" strokeWidth="3" />
-              <circle cx="75" cy="120" r="12" fill="#ffffff" stroke="#4a3018" strokeWidth="2" />
-              <circle cx="75" cy="120" r="6" fill="#4a3018" />
-              <circle cx="125" cy="120" r="12" fill="#ffffff" stroke="#4a3018" strokeWidth="2" />
-              <circle cx="125" cy="120" r="6" fill="#4a3018" />
-              <path d="M98 135 L102 135 L100 130 Z" fill="#bc6c25" />
-              {isSpeaking ? (
-                <path d="M85 145 Q100 160 115 145 Z" fill="#ef4444" stroke="#4a3018" strokeWidth="2" />
-              ) : (
-                <path d="M90 145 Q100 152 110 145" fill="none" stroke="#4a3018" strokeWidth="3" strokeLinecap="round" />
-              )}
-              <path d="M70 160 L130 160 L135 195 L65 195 Z" fill="#ffffff" stroke="#94a3b8" strokeWidth="2" />
-              <path d="M75 175 L125 175 L125 195 L75 195 Z" fill="#22c55e" stroke="#166534" strokeWidth="2" />
-              <rect x="90" y="180" width="20" height="12" rx="2" fill="#16a34a" />
-              <circle cx="100" cy="186" r="3" fill="#ef4444" />
-            </svg>
-          </div>
-        </div>
-      </div>
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        
+        @keyframes sway { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(3deg); } }
+        .animate-sway { animation: sway 2s ease-in-out infinite; }
 
-      {/* 底部輸入區域 */}
-      <div className="w-full p-3 sm:p-4 bg-white/95 backdrop-blur-md border-t-4 border-green-100 z-30 shrink-0">
-        <div className="max-w-2xl mx-auto flex flex-col gap-3">
-          
-          {/* 快速問題按鈕 */}
-          <div className="flex overflow-x-auto pb-1 gap-2 no-scrollbar">
-            {quickQuestions.map((q, index) => (
-              <button 
-                key={index}
-                onClick={() => handleQuickQuestion(q)}
-                disabled={isLoading}
-                className="whitespace-nowrap px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-full text-xs sm:text-sm font-bold transition-all active:scale-95 disabled:opacity-50"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-          {/* 輸入框 */}
-          <div className="flex items-center gap-2 bg-green-50 p-1.5 rounded-full border-2 border-green-200 focus-within:border-green-400 focus-within:bg-white transition-all shadow-sm">
-            <div className="pl-3 text-green-500 hidden sm:block"><Mic size={24} /></div>
-            <input 
-              type="text" 
-              className="flex-1 bg-transparent border-none outline-none text-base sm:text-lg py-1.5 px-2 text-green-900 placeholder:text-green-400 font-bold"
-              placeholder="我有新發現..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
-              disabled={isLoading}
-            />
-            <button 
-              onClick={handleAsk}
-              disabled={!inputText.trim() || isLoading}
-              className="bg-green-500 hover:bg-green-600 text-white p-2.5 rounded-full transition-all active:scale-90 shadow-md disabled:opacity-40"
-            >
-              {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
-            </button>
-          </div>
-        </div>
-      </div>
+        .bubble-tail::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%) rotate(45deg);
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-right: 4px solid #4ade80;
+            border-bottom: 4px solid #4ade80;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="flex flex-col h-screen relative">
+        <!-- 頂部導航 -->
+        <header class="h-16 w-full p-4 flex justify-between items-center z-20 shrink-0">
+            <div class="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border-2 border-green-200">
+                <span class="text-2xl">🌱</span>
+                <span class="font-bold text-green-800 text-sm sm:text-base">可可農夫：探索小教室</span>
+            </div>
+            <div class="flex gap-2">
+                <button id="toggleAudio" class="p-3 rounded-full shadow-sm transition-all active:scale-95 border-2 bg-green-500 text-white border-green-400">
+                    <svg id="iconVolOn" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                    <svg id="iconVolOff" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                </button>
+                <button onclick="location.reload()" class="p-3 bg-white text-green-600 rounded-full shadow-sm border-2 border-green-200 active:rotate-180 transition-transform duration-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主內容區 -->
+        <main class="flex-1 w-full flex flex-col items-center justify-between px-4 pt-2 overflow-hidden min-h-0">
+            <!-- 對話氣泡 -->
+            <div class="w-full max-w-lg shrink-0 z-20 mb-2">
+                <div class="bg-white border-[4px] border-green-400 p-5 rounded-[2rem] shadow-xl relative bubble-tail min-h-[110px] flex flex-col justify-center">
+                    <p id="dialogueBox" class="text-base sm:text-xl text-green-900 leading-relaxed font-bold text-center">
+                        小農夫你好呀！🚜 我是可可農夫。你觀察完那兩盤草莓了嗎？它們的顏色、形狀有什麼不同？儘管問我喔！🍓
+                    </p>
+                    <div id="audioVisualizer" class="hidden flex justify-center items-end gap-1.5 mt-2">
+                        <div class="w-1.5 h-2 bg-green-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                        <div class="w-1.5 h-2 bg-green-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                        <div class="w-1.5 h-2 bg-green-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 農夫角色 SVG -->
+            <div class="flex-1 w-full flex items-center justify-center relative z-10 min-h-0 pb-2">
+                <div id="farmerContainer" class="animate-float h-full w-full flex items-center justify-center transition-transform duration-500">
+                    <svg viewBox="0 0 200 200" class="drop-shadow-2xl h-[380px] max-h-full w-auto">
+                        <!-- 帽子 -->
+                        <path d="M40 70 Q100 20 160 70 L180 85 Q100 100 20 85 Z" fill="#0ea5e9" stroke="#0284c7" stroke-width="3" />
+                        <path d="M20 85 Q100 100 180 85 Q100 105 20 85 Z" fill="#ef4444" />
+                        <!-- 裝飾 -->
+                        <polygon points="90,65 110,65 100,80" fill="#fde047" stroke="#ca8a04" stroke-width="2" />
+                        <!-- 手臂 -->
+                        <rect x="45" y="100" width="15" height="30" rx="5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="2" />
+                        <rect x="140" y="100" width="15" height="30" rx="5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="2" />
+                        <!-- 臉部 -->
+                        <rect x="55" y="85" width="90" height="75" rx="20" fill="#d4a373" stroke="#bc6c25" stroke-width="3" />
+                        <circle cx="75" cy="120" r="12" fill="#ffffff" stroke="#4a3018" stroke-width="2" />
+                        <circle cx="75" cy="120" r="6" fill="#4a3018" />
+                        <circle cx="125" cy="120" r="12" fill="#ffffff" stroke="#4a3018" stroke-width="2" />
+                        <circle cx="125" cy="120" r="6" fill="#4a3018" />
+                        <!-- 鼻子 -->
+                        <path d="M98 135 L102 135 L100 130 Z" fill="#bc6c25" />
+                        <!-- 嘴巴 -->
+                        <path id="mouth" d="M90 145 Q100 152 110 145" fill="none" stroke="#4a3018" stroke-width="3" stroke-linecap="round" />
+                        <!-- 身體 -->
+                        <path d="M70 160 L130 160 L135 195 L65 195 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="2" />
+                        <path d="M75 175 L125 175 L125 195 L75 195 Z" fill="#22c55e" stroke="#166534" stroke-width="2" />
+                        <!-- 徽章 -->
+                        <rect x="90" y="180" width="20" height="12" rx="2" fill="#16a34a" />
+                        <circle cx="100" cy="186" r="3" fill="#ef4444" />
+                    </svg>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部控制區 -->
+        <footer class="w-full p-4 bg-white/95 backdrop-blur-md border-t-4 border-green-100 z-30 shrink-0">
+            <div class="max-w-2xl mx-auto flex flex-col gap-3">
+                <!-- 快速按鈕 -->
+                <div class="flex overflow-x-auto pb-1 gap-2 no-scrollbar">
+                    <button onclick="handleQuickAsk('發霉後能變回新鮮的嗎？')" class="whitespace-nowrap px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-full text-xs sm:text-sm font-bold transition-all active:scale-95">發霉後能變回新鮮的嗎？</button>
+                    <button onclick="handleQuickAsk('這屬於哪種變化？')" class="whitespace-nowrap px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-full text-xs sm:text-sm font-bold transition-all active:scale-95">這屬於哪種變化？</button>
+                    <button onclick="handleQuickAsk('草莓發霉長出什麼？')" class="whitespace-nowrap px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-full text-xs sm:text-sm font-bold transition-all active:scale-95">草莓發霉長出什麼？</button>
+                    <button onclick="handleQuickAsk('新鮮和發霉有什麼分別？')" class="whitespace-nowrap px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-full text-xs sm:text-sm font-bold transition-all active:scale-95">新鮮和發霉有什麼分別？</button>
+                </div>
+
+                <!-- 輸入框 -->
+                <div class="flex items-center gap-2 bg-green-50 p-1.5 rounded-full border-2 border-green-200 shadow-sm">
+                    <input id="userInput" type="text" 
+                        class="flex-1 bg-transparent border-none outline-none text-base sm:text-lg py-1.5 px-4 text-green-900 placeholder:text-green-400 font-bold"
+                        placeholder="我有新發現..."
+                    />
+                    <button id="sendBtn" class="bg-green-500 hover:bg-green-600 text-white p-2.5 rounded-full transition-all active:scale-90 shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+            </div>
+        </footer>
     </div>
-  );
-};
 
-export default App;
+    <script>
+        const dialogueBox = document.getElementById('dialogueBox');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const toggleAudio = document.getElementById('toggleAudio');
+        const iconVolOn = document.getElementById('iconVolOn');
+        const iconVolOff = document.getElementById('iconVolOff');
+        const visualizer = document.getElementById('audioVisualizer');
+        const mouth = document.getElementById('mouth');
+        const farmerContainer = document.getElementById('farmerContainer');
+
+        let isAudioEnabled = true;
+        let typewriterInterval = null;
+
+        // 知識庫邏輯
+        function generateAnswer(question) {
+            const q = question.toLowerCase();
+            
+            // 1. 事實回答
+            if (q.includes("分別") || q.includes("顏色") || q.includes("形狀") || q.includes("質感") || q.includes("特徵") || q.includes("不同")) {
+                return "來，我告訴你我的觀察：新鮮草莓是『鮮紅色』的，形狀『飽滿』，摸起來『硬實』；但發霉的草莓顏色會變『暗沈』，形狀變得『軟爛』，表面還長了毛茸茸的東西喔！🍓";
+            }
+            if (q.includes("白色") || q.includes("白毛") || q.includes("長出") || q.includes("東西") || q.includes("霉菌")) {
+                return "你觀察得太準確了！那些白白灰灰、毛茸茸的東西，科學上我們稱它為『霉菌』。它是因為草莓變質而長出來的新物質喔！🔍";
+            }
+
+            // 2. 引導思考
+            if (q.includes("變回") || q.includes("回復") || q.includes("恢復") || q.includes("原本")) {
+                return "這是一個關鍵問題！你想看，發霉後的草莓已經長了霉菌、變軟爛了。你覺得它還有可能變回原本那顆鮮紅硬實的草莓嗎？試著在工作紙第 4 題寫下你的判斷！🛑";
+            }
+            if (q.includes("物理") || q.includes("化學") || q.includes("變化")) {
+                return "很有鑽研精神喔！既然草莓長出了『霉菌』這種新東西，而且『不能變回原狀』，這在科學定義中屬於物理變化還是化學變化？";
+            }
+
+            // 3. 安全與問候
+            if (q.includes("吃") || q.includes("食") || q.includes("洗")) {
+                return "這很危險喔！既然已經長出了『霉菌』，這代表草莓已經產生了有害的新物質。為了安全，絕對不能吃喔！🚫";
+            }
+            if (q.includes("你好") || q.includes("哈囉")) {
+                return "你好呀！我是可可農夫🚜！準備好跟我一起透過觀察來解開大自然的奧秘了嗎？點選下方的按鈕，或者直接把你的發現告訴我！";
+            }
+            
+            return "這個問題問得真好！🚜 我也想聽聽你的看法。你可以試著觀察看看：發霉後的草莓長出了什麼『新東西』？它還能變回原本的樣子嗎？";
+        }
+
+        // 打字機效果
+        function startTypewriter(text) {
+            clearInterval(typewriterInterval);
+            dialogueBox.innerText = "";
+            let i = 0;
+            typewriterInterval = setInterval(() => {
+                if (i < text.length) {
+                    dialogueBox.innerText += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typewriterInterval);
+                }
+            }, 80);
+        }
+
+        // 語音播放 (過濾 Emoji)
+        function speak(text) {
+            if (!isAudioEnabled) return;
+            
+            window.speechSynthesis.cancel();
+            const textToSpeak = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'zh-HK';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.2;
+
+            utterance.onstart = () => {
+                visualizer.classList.remove('hidden');
+                mouth.setAttribute('d', 'M85 145 Q100 160 115 145 Z');
+                mouth.setAttribute('fill', '#ef4444');
+                farmerContainer.classList.add('animate-sway');
+            };
+
+            utterance.onend = () => {
+                visualizer.classList.add('hidden');
+                mouth.setAttribute('d', 'M90 145 Q100 152 110 145');
+                mouth.setAttribute('fill', 'none');
+                farmerContainer.classList.remove('animate-sway');
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function process(q) {
+            if (!q) return;
+            const answer = generateAnswer(q);
+            startTypewriter(answer);
+            speak(answer);
+        }
+
+        sendBtn.addEventListener('click', () => {
+            const q = userInput.value.trim();
+            if (q) {
+                process(q);
+                userInput.value = "";
+            }
+        });
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendBtn.click();
+        });
+
+        function handleQuickAsk(q) {
+            process(q);
+        }
+
+        toggleAudio.addEventListener('click', () => {
+            isAudioEnabled = !isAudioEnabled;
+            if (!isAudioEnabled) window.speechSynthesis.cancel();
+            iconVolOn.classList.toggle('hidden');
+            iconVolOff.classList.toggle('hidden');
+            toggleAudio.classList.toggle('bg-green-500');
+            toggleAudio.classList.toggle('bg-gray-400');
+        });
+
+        // 初始化
+        window.onload = () => {
+            console.log("Farmer Coco Web Ready");
+        };
+    </script>
+</body>
+</html>
